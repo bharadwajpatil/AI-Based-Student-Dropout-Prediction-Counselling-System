@@ -1,0 +1,72 @@
+services:
+  # MongoDB with single-node replica set for multi-document ACID transactions
+  mongodb:
+    image: mongo:7.0
+    container_name: student_dropout_mongo
+    restart: unless-stopped
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --eval \"try { rs.status().ok } catch(e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongodb:27017'}]}).ok }\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  # MailHog: captures development emails with web UI
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: student_dropout_mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8025/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # Backend: FastAPI application
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: student_dropout_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/workspace/backend
+      - ./scripts:/workspace/scripts
+    env_file:
+      - .env
+    environment:
+      - APP_ENV=development
+      - APP_DEBUG=true
+      - MONGODB_URI=mongodb://mongodb:27017/student_dropout_db?replicaSet=rs0&directConnection=true
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    command: ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  # Frontend: React + Vite application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: student_dropout_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:

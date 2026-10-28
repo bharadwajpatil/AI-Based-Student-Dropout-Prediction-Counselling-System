@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  body {
+    background-color: #FFFBF5;
+    color: #2B211B;
+    min-height: 100vh;
+  }
+
+  .dark body {
+    background-color: #1F1A17;
+    color: #F5EFE6;
+  }
+}
+
+@layer utilities {
+  .card-lift {
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  }
+  .card-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(74, 59, 50, 0.10), 0 2px 4px rgba(74, 59, 50, 0.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
